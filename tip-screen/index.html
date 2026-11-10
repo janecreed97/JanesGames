@@ -18,9 +18,9 @@
     merchant: "Thank you for your order",
     total: 14.75,
     tips: [
-      { percent: 18, image: "images/tip-1.svg" },
-      { percent: 20, image: "images/tip-2.svg" },
-      { percent: 25, image: "images/tip-3.svg" },
+      { percent: 20, image: "images/tip-1.svg" },
+      { percent: 26, image: "images/tip-2.svg" },
+      { percent: 32, image: "images/tip-3.svg" },
     ],
     customImage: "images/custom.svg",
     noTipImage: "images/no-tip.svg",
@@ -87,7 +87,14 @@
   .tip .pct { font-size: clamp(40px, 6vw, 64px); font-weight: 700; letter-spacing: -0.02em; }
   .tip .amt { font-size: clamp(18px, 2.4vw, 24px); color: var(--muted); }
 
-  .row2 { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row2 { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr; gap: 10px; justify-items: center; }
+  .row2 .wide { width: 100%; }
+  /* the No Tip button, as small as we can get away with */
+  .tiny {
+    font-size: 8px; font-weight: 400; color: #c4c7cc;
+    background: none; padding: 2px 4px; border-radius: 3px;
+  }
+  .tiny:active { background: none; color: #9a9ea5; }
   .wide { height: 76px; font-size: 21px; font-weight: 600; }
 
   footer {
@@ -130,6 +137,25 @@
     animation: spin .8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* "Are you sure?" dialog */
+  #confirm {
+    position: fixed; inset: 0; z-index: 8;
+    background: rgba(0,0,0,.4);
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  #confirm.show { display: flex; }
+  #confirm .card {
+    background: var(--bg); border-radius: 20px; width: 100%; max-width: 520px;
+    padding: 36px 28px 28px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    animation: rise .2s ease-out;
+  }
+  #confirm h2 { font-size: clamp(26px, 3.6vw, 34px); margin: 0 0 28px; letter-spacing: -0.01em; line-height: 1.2; }
+  #confirm .actions { display: grid; gap: 12px; }
+  #confirm .primary { background: var(--accent); color: #fff; }
+  #confirm .primary:active { background: var(--accent-press); }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
@@ -151,7 +177,7 @@
     <div class="grid" id="grid">
       <div class="row2">
         <button class="wide" data-img="custom">Custom Tip Amount</button>
-        <button class="wide" data-img="none">No Tip</button>
+        <button class="tiny" data-img="none">No Tip</button>
       </div>
     </div>
 
@@ -161,6 +187,15 @@
     </footer>
   </div>
 
+  <div id="confirm">
+    <div class="card">
+      <h2 id="confirmText">Are you sure?</h2>
+      <div class="actions">
+        <button class="wide" id="confirmYes">Yes</button>
+        <button class="wide primary" id="confirmNo"></button>
+      </div>
+    </div>
+  </div>
   <div id="processing"><div class="spinner"></div><div>Processing…</div></div>
   <div id="reveal"><img alt=""><div class="hint">tap anywhere to go back</div></div>
 
@@ -191,15 +226,49 @@
   const reveal = document.getElementById("reveal");
   const img = reveal.querySelector("img");
 
-  grid.addEventListener("click", e => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    img.src = images[b.dataset.img];
+  function showImage(key) {
+    img.src = images[key];
     processing.classList.add("show");
     setTimeout(() => {
       processing.classList.remove("show");
       reveal.classList.add("show");
     }, 900);
+  }
+
+  // Custom tip: "Are you sure?" → "Are you really sure?" → ... up to 5 "really"s
+  const MAX_REALLYS = 5;
+  const confirmBox = document.getElementById("confirm");
+  const confirmText = document.getElementById("confirmText");
+  const biggest = CONFIG.tips.reduce((a, t, i) => t.percent > CONFIG.tips[a].percent ? i : a, 0);
+  document.getElementById("confirmNo").textContent = `No, tip ${CONFIG.tips[biggest].percent}%`;
+  let reallys = 0;
+
+  function askAgain() {
+    confirmText.textContent = "Are you " + "really ".repeat(reallys) + "sure?";
+    // re-trigger the pop-in animation each time
+    const card = confirmBox.querySelector(".card");
+    card.style.animation = "none"; card.offsetHeight; card.style.animation = "";
+    confirmBox.classList.add("show");
+  }
+  document.getElementById("confirmYes").addEventListener("click", () => {
+    if (reallys >= MAX_REALLYS) {
+      confirmBox.classList.remove("show");
+      showImage("custom");
+    } else {
+      reallys++;
+      askAgain();
+    }
+  });
+  document.getElementById("confirmNo").addEventListener("click", () => {
+    confirmBox.classList.remove("show");
+    showImage("tip" + biggest);
+  });
+
+  grid.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.img === "custom") { reallys = 0; askAgain(); return; }
+    showImage(b.dataset.img);
   });
   reveal.addEventListener("click", () => reveal.classList.remove("show"));
 
