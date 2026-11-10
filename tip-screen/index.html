@@ -23,7 +23,6 @@
       { percent: 32, image: "images/tip-3.svg" },
     ],
     customImage: "images/custom.svg",
-    noTipImage: "images/no-tip.svg",
   };
 </script>
 <style>
@@ -89,12 +88,6 @@
 
   .row2 { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr; gap: 10px; justify-items: center; }
   .row2 .wide { width: 100%; }
-  /* the No Tip button, as small as we can get away with */
-  .tiny {
-    font-size: 8px; font-weight: 400; color: #c4c7cc;
-    background: none; padding: 2px 4px; border-radius: 3px;
-  }
-  .tiny:active { background: none; color: #9a9ea5; }
   .wide { height: 76px; font-size: 21px; font-weight: 600; }
 
   footer {
@@ -177,7 +170,6 @@
     <div class="grid" id="grid">
       <div class="row2">
         <button class="wide" data-img="custom">Custom Tip Amount</button>
-        <button class="tiny" data-img="none">No Tip</button>
       </div>
     </div>
 
@@ -217,7 +209,7 @@
     grid.insertBefore(b, row2);
   });
 
-  const images = { custom: CONFIG.customImage, none: CONFIG.noTipImage };
+  const images = { custom: CONFIG.customImage };
   CONFIG.tips.forEach((t, i) => images["tip" + i] = t.image);
   // Preload so the reveal is instant
   Object.values(images).forEach(src => { new Image().src = src; });
